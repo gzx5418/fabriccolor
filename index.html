@@ -1,35 +1,785 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>电子面料色彩数据库 · Fabric Color Database</title>
-<style>
-body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;margin:0;background:#f7f9fc;color:#1f2a37}
-.wrap{max-width:820px;margin:0 auto;padding:64px 24px}
-h1{font-size:32px;margin:0 0 8px;color:#0b3c6c}
-.sub{color:#2563eb;font-size:17px;margin-bottom:28px}
-p{line-height:1.75;font-size:16px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:30px 0}
-.card{background:#fff;border:1px solid #dbe4ee;border-radius:10px;padding:16px 18px}
-.card b{color:#0b3c6c}
-.tag{display:inline-block;background:#e8eff8;color:#0b3c6c;border-radius:999px;padding:3px 12px;font-size:13px;margin-right:8px}
-footer{margin-top:44px;color:#6b7a8d;font-size:14px}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>电子面料色彩数据库 · Fabric Color Database</title>
+  <meta
+    name="description"
+    content="Fabric Color Database（电子面料色彩数据库）——基于 Tauri 2、Rust、Python Worker 与 SQLite 的科研级桌面面料色彩分析工作流，集成颜色提取、智能分割、CIEDE2000 检索、CIECAM02 色貌模拟、CatBoost 纹理换色与 227 款服装白模库。"
+  />
+  <meta property="og:title" content="电子面料色彩数据库 · Fabric Color Database" />
+  <meta
+    property="og:description"
+    content="面向电子面料图像的一体化桌面色彩数据库与实验分析工作台：提取、分割、检索、色貌模拟、纹理换色与 SQLite 可核查归档。"
+  />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://fabriccolor.is-an.ai/" />
+  <link rel="icon" type="image/png" href="./assets/brand-mark.png" />
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-<div class="wrap">
-<h1>电子面料色彩数据库</h1>
-<div class="sub">Fabric Color Database — Electronic Fabric Color Database</div>
-<p>本项目面向面料颜色的自动化分析研究，将电子面料图像处理、颜色提取、样本入库、色彩数据库检索、面料纹理换色预览与结果归档，整合进一个连续、可核查的桌面工作流。</p>
-<div class="grid">
-<div class="card"><b>图像处理与颜色提取</b><br>从面料图像中精确提取主色与色彩构成。</div>
-<div class="card"><b>样本入库与管理</b><br>样本采集、查看与详情维护，沉淀为可检索的数据资产。</div>
-<div class="card"><b>色彩数据库检索</b><br>按色彩特征检索样本，完成色彩对比与结果核查。</div>
-<div class="card"><b>纹理换色预览与归档</b><br>面料纹理换色预览，分析产物统一归档留痕。</div>
-</div>
-<p><span class="tag">科研项目</span><span class="tag">持续开发中</span><span class="tag">计算机视觉 · 色彩科学</span></p>
-<footer>Electronic fabric color database — research project on automated fabric color analysis.</footer>
-</div>
+  <!-- 顶部导航栏 -->
+  <header class="site-header" id="top">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="Fabric Color Database 首页">
+        <img class="brand-logo" src="./assets/brand-mark.png" alt="电子面料色彩数据库徽标" width="36" height="36" />
+        <div class="brand-text">
+          <span class="brand-title">电子面料色彩数据库</span>
+          <span class="brand-sub">Fabric Color Database</span>
+        </div>
+      </a>
+
+      <nav class="site-nav" aria-label="页面导航">
+        <a href="#workflow">研究工作流</a>
+        <a href="#lab">交互实验室</a>
+        <a href="#modules">八大模块</a>
+        <a href="#architecture">技术架构</a>
+      </nav>
+
+      <div class="header-actions">
+        <span class="version-pill" title="当前桌面端发行版本">v0.1.6</span>
+        <a
+          class="btn btn-primary btn-sm"
+          href="https://github.com/gzx5418/fabric-color-database"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              fill="currentColor"
+              d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z"
+            />
+          </svg>
+          <span>GitHub 仓库</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- 首屏 Hero -->
+    <section class="hero-section">
+      <div class="hero-grid-bg" aria-hidden="true"></div>
+      <div class="container hero-layout">
+        <div class="hero-copy">
+          <div class="eyebrow-row">
+            <span class="status-dot" aria-hidden="true"></span>
+            <span class="eyebrow-text">科研级桌面色彩分析系统 · Windows 离线交付</span>
+          </div>
+
+          <h1 class="hero-title">
+            让电子面料色彩分析<br />
+            <span class="hero-title-accent">精确、连续、可核查</span>
+          </h1>
+
+          <p class="hero-lead">
+            <strong>Fabric Color Database</strong> 将相机采集、图像分割与主色提取、SQLite 样本沉淀、
+            CIEDE2000 色彩检索、CIECAM02 色貌模拟与局部纹理换色整合进同一个本地桌面工作台，服务于纺织色彩科研、教学与数字化样布管理。
+          </p>
+
+          <div class="hero-cta">
+            <a class="btn btn-primary btn-lg" href="#lab">
+              <span>体验在线色彩实验室</span>
+              <svg class="icon-inline" viewBox="0 0 20 20" aria-hidden="true">
+                <path fill="currentColor" d="M10.293 3.293a1 1 0 0 1 1.414 0l6 6a1 1 0 0 1 0 1.414l-6 6a1 1 0 0 1-1.414-1.414L14.586 11H3a1 1 0 1 1 0-2h11.586l-4.293-4.293a1 1 0 0 1 0-1.414Z" />
+              </svg>
+            </a>
+            <a class="btn btn-secondary btn-lg" href="#modules">浏览八大核心模块</a>
+          </div>
+
+          <dl class="hero-metrics">
+            <div class="metric-item">
+              <dt>核心功能视图</dt>
+              <dd><span class="mono-num">08</span><span class="metric-unit">大模块联动</span></dd>
+            </div>
+            <div class="metric-item">
+              <dt>CIE 15:2004 光源</dt>
+              <dd><span class="mono-num">6</span><span class="metric-unit">种标准 SPD</span></dd>
+            </div>
+            <div class="metric-item">
+              <dt>织物组织纹理</dt>
+              <dd><span class="mono-num">5</span><span class="metric-unit">类物理结构</span></dd>
+            </div>
+            <div class="metric-item">
+              <dt>内置服装白模</dt>
+              <dd><span class="mono-num">227</span><span class="metric-unit">款分类款式</span></dd>
+            </div>
+          </dl>
+        </div>
+
+        <!-- 右侧：高保真交互式桌面工作台视窗 -->
+        <div class="hero-stage" aria-label="桌面端工作台交互预览">
+          <div class="desktop-window">
+            <div class="window-chrome">
+              <div class="window-dots" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </div>
+              <div class="window-title mono">Fabric Color Database — Desktop Workbench v0.1.6</div>
+              <div class="window-tag">ICC → sRGB</div>
+            </div>
+
+            <div class="window-body">
+              <aside class="mock-sidebar" aria-hidden="true">
+                <div class="mock-nav-item"><span>01</span>总览</div>
+                <div class="mock-nav-item"><span>02</span>样本</div>
+                <div class="mock-nav-item"><span>03</span>色貌</div>
+                <div class="mock-nav-item"><span>04</span>色彩库</div>
+                <div class="mock-nav-item is-active"><span>05</span>面料库</div>
+                <div class="mock-nav-item"><span>06</span>款式库</div>
+                <div class="mock-nav-item"><span>07</span>换色台</div>
+                <div class="mock-nav-item"><span>08</span>结果</div>
+              </aside>
+
+              <div class="mock-workspace">
+                <div class="mock-top-row">
+                  <div>
+                    <div class="mock-kicker">面料纹理换色实时预览</div>
+                    <div class="mock-heading" id="hero-weave-title">斜纹正面 · Twill Front (2/1)</div>
+                  </div>
+                  <div class="mock-weave-tabs" role="tablist" aria-label="首屏切换织纹">
+                    <button type="button" class="mini-pill is-active" data-hero-weave="twill_f" role="tab" aria-selected="true">斜纹</button>
+                    <button type="button" class="mini-pill" data-hero-weave="plain_f" role="tab" aria-selected="false">平纹</button>
+                    <button type="button" class="mini-pill" data-hero-weave="satin_f" role="tab" aria-selected="false">缎纹</button>
+                  </div>
+                </div>
+
+                <div class="mock-canvas-frame">
+                  <canvas id="hero-fabric-canvas" width="460" height="240" aria-label="交互式面料染色预览画布"></canvas>
+                  <div class="canvas-hud">
+                    <span class="hud-chip mono" id="hero-hud-hex">#2D4F7C</span>
+                    <span class="hud-chip mono" id="hero-hud-lab">L* 33.4 · a* 0.8 · b* -28.6</span>
+                  </div>
+                  <div class="canvas-corner-note">点击下方样色即时重染织物</div>
+                </div>
+
+                <div class="mock-swatch-strip">
+                  <div class="strip-label">
+                    <span>提取主色 & 标准色样</span>
+                    <span class="mono" id="hero-color-name">靛青 · Indigo</span>
+                  </div>
+                  <div class="hero-swatches" id="hero-swatches" role="group" aria-label="首屏面料快捷配色"></div>
+                </div>
+
+                <div class="mock-readout-grid">
+                  <div class="readout-box">
+                    <span class="readout-label">最近色彩锚点</span>
+                    <strong class="mono" id="hero-anchor">5PB V3.3/C6.2</strong>
+                  </div>
+                  <div class="readout-box">
+                    <span class="readout-label">CIEDE2000 偏差</span>
+                    <strong class="mono" id="hero-de">ΔE00 0.62</strong>
+                  </div>
+                  <div class="readout-box">
+                    <span class="readout-label">参考照明体</span>
+                    <strong class="mono">D65 · 6504K</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 底部标志性磨砂玻璃全局吸色板工具栏 -->
+            <div class="mock-picker-bar">
+              <div class="picker-bar-left">
+                <span class="picker-badge">全局吸色板</span>
+                <div class="picker-chips" id="global-tray-chips" aria-label="当前收集的临时色板"></div>
+              </div>
+              <div class="picker-bar-actions">
+                <button type="button" class="tray-btn" id="btn-add-current-tray" title="将当前首屏颜色加入临时色板">+ 收入色板</button>
+                <button type="button" class="tray-btn" id="btn-copy-tray" title="复制全部色值">复制 HEX</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 全链路桌面工作流 -->
+    <section class="section workflow-section" id="workflow">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-kicker">END-TO-END DESKTOP WORKFLOW</span>
+          <h2>从物理布样采集到数字化归档的完整闭环</h2>
+          <p class="section-desc">
+            拒绝割裂的脚本拼接与零散的中间文件夹。每一次图像采集、主色分割、光源色貌测试与局部换色，都在统一工作流与 SQLite 账本下可追踪、可复现。
+          </p>
+        </div>
+
+        <ol class="workflow-track">
+          <li class="workflow-step">
+            <div class="step-head">
+              <span class="step-num mono">01</span>
+              <span class="step-tag">采集与导入</span>
+            </div>
+            <h3>单图 / 批量 / Nikon 联机</h3>
+            <p>支持单张与文件夹批量导入，内置 Nikon D7500 实时取景与三档预览分辨率直采入库，全链路执行 ICC → sRGB 色彩归一化。</p>
+          </li>
+
+          <li class="workflow-step">
+            <div class="step-head">
+              <span class="step-num mono">02</span>
+              <span class="step-tag">提取与分割</span>
+            </div>
+            <h3>纯色与花纹双策略识别</h3>
+            <p>支持 <code>auto</code> / <code>solid</code> / <code>pattern</code> 面料识别，在 <code>mean_shift</code> 与 <code>pattern_texture</code> 分割间自适应切换，输出 mask、cluster、overview 与 Excel。</p>
+          </li>
+
+          <li class="workflow-step">
+            <div class="step-head">
+              <span class="step-num mono">03</span>
+              <span class="step-tag">检索与色貌</span>
+            </div>
+            <h3>CIEDE2000 &amp; CIECAM02</h3>
+            <p>将真实样本颜色锚定至感知均匀色空间，支持四大标准色库对照与六种 CIE 15:2004 标准光源下的正反向色貌推演。</p>
+          </li>
+
+          <li class="workflow-step">
+            <div class="step-head">
+              <span class="step-num mono">04</span>
+              <span class="step-tag">换色与归档</span>
+            </div>
+            <h3>纹理换色与 SQLite 留痕</h3>
+            <p>结合 CatBoost 纹理标准差预测与三模式 mask 局部换色，所有输出图像、manifest 与任务历史自动持久化并支持原子备份恢复。</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- 交互式色彩科学实验室 -->
+    <section class="section lab-section" id="lab">
+      <div class="container">
+        <div class="section-header section-header-row">
+          <div>
+            <span class="section-kicker">INTERACTIVE COLOR SCIENCE LAB</span>
+            <h2>在线体验核心色彩算法与织物渲染</h2>
+            <p class="section-desc">
+              以下交互台基于原项目采用的真实色彩数学公式（CIELAB、CIEDE2000 ΔE00 与 CIE 15:2004 标准照明体 SPD）在浏览器端实时演算。
+            </p>
+          </div>
+          <div class="lab-tabs" role="tablist" aria-label="交互实验室模式">
+            <button type="button" class="lab-tab is-active" data-lab-tab="weave" role="tab" aria-selected="true">01 织物纹理换色</button>
+            <button type="button" class="lab-tab" data-lab-tab="spd" role="tab" aria-selected="false">02 CIE 光源与色貌</button>
+            <button type="button" class="lab-tab" data-lab-tab="de2000" role="tab" aria-selected="false">03 ΔE00 色差检定</button>
+          </div>
+        </div>
+
+        <!-- Tab 1: 织物纹理换色 -->
+        <div class="lab-panel is-active" id="lab-panel-weave" role="tabpanel">
+          <div class="lab-grid">
+            <div class="lab-controls">
+              <div class="control-group">
+                <label class="control-label">织物组织结构（五类实验纹理）</label>
+                <div class="weave-selector" id="lab-weave-selector">
+                  <button type="button" class="chip-btn is-active" data-weave="plain_f">平纹正面<small>plain_f</small></button>
+                  <button type="button" class="chip-btn" data-weave="twill_f">斜纹正面<small>twill_f</small></button>
+                  <button type="button" class="chip-btn" data-weave="twill_b">斜纹反面<small>twill_b</small></button>
+                  <button type="button" class="chip-btn" data-weave="satin_f">缎纹正面<small>satin_f</small></button>
+                  <button type="button" class="chip-btn" data-weave="satin_b">缎纹反面<small>satin_b</small></button>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label class="control-label" for="lab-color-input">目标染整颜色（HEX / 拾色器）</label>
+                <div class="color-input-row">
+                  <input type="color" id="lab-color-picker" value="#2D4F7C" aria-label="选择目标颜色" />
+                  <input type="text" id="lab-color-input" class="mono" value="#2D4F7C" maxlength="7" spellcheck="false" aria-label="输入十六进制色值" />
+                  <button type="button" class="btn btn-secondary btn-sm" id="lab-add-tray">加入吸色板</button>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <label class="control-label">内置参考色库精选（中国传统色 · COLORO · NCS · PANTONE）</label>
+                <div class="preset-palette" id="lab-preset-palette"></div>
+              </div>
+
+              <div class="control-group">
+                <div class="slider-header">
+                  <label class="control-label" for="lab-zoom-range">微观经纬观察倍率</label>
+                  <span class="mono slider-val" id="lab-zoom-val">1.0×</span>
+                </div>
+                <input type="range" id="lab-zoom-range" min="0.7" max="2.0" step="0.1" value="1.0" />
+              </div>
+            </div>
+
+            <div class="lab-visual">
+              <div class="lab-canvas-card">
+                <div class="lab-canvas-header">
+                  <div>
+                    <strong id="lab-weave-name">平纹正面 (Plain Weave · Front)</strong>
+                    <span class="muted-text" id="lab-weave-meta">1/1 交织结构 · 经纬均衡漫反射</span>
+                  </div>
+                  <span class="badge-outline mono" id="lab-std-sigma">预测纹理 σL* = 4.82</span>
+                </div>
+
+                <div class="lab-canvas-wrap">
+                  <canvas id="lab-fabric-canvas" width="600" height="320" aria-label="放大织物微观换色预览"></canvas>
+                </div>
+
+                <div class="color-telemetry">
+                  <div class="telemetry-cell">
+                    <span>sRGB</span>
+                    <strong class="mono" id="tel-rgb">45, 79, 124</strong>
+                  </div>
+                  <div class="telemetry-cell">
+                    <span>CIE L*a*b* (D65)</span>
+                    <strong class="mono" id="tel-lab">33.4, 0.8, -28.6</strong>
+                  </div>
+                  <div class="telemetry-cell">
+                    <span>CIE L*C*h°</span>
+                    <strong class="mono" id="tel-lch">33.4, 28.6, 271.6°</strong>
+                  </div>
+                  <div class="telemetry-cell">
+                    <span>近似坐标锚点</span>
+                    <strong class="mono" id="tel-munsell">5PB V3.3/C5.7</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: CIE 标准光源 SPD 与色貌感知 -->
+        <div class="lab-panel" id="lab-panel-spd" role="tabpanel" hidden>
+          <div class="lab-grid">
+            <div class="lab-controls">
+              <div class="control-group">
+                <label class="control-label">选择 CIE 15:2004 标准照明体</label>
+                <div class="illuminant-grid" id="illuminant-selector">
+                  <button type="button" class="illum-btn" data-illum="D50"><strong>D50</strong><span>5003K · 印刷观察</span></button>
+                  <button type="button" class="illum-btn" data-illum="D55"><strong>D55</strong><span>5503K · 中性日光</span></button>
+                  <button type="button" class="illum-btn is-active" data-illum="D65"><strong>D65</strong><span>6504K · 标准日光</span></button>
+                  <button type="button" class="illum-btn" data-illum="D75"><strong>D75</strong><span>7504K · 北窗冷日光</span></button>
+                  <button type="button" class="illum-btn" data-illum="A"><strong>A</strong><span>2856K · 钨丝暖光</span></button>
+                  <button type="button" class="illum-btn" data-illum="C"><strong>C</strong><span>6774K · 历史日光</span></button>
+                </div>
+              </div>
+
+              <div class="control-group">
+                <div class="slider-header">
+                  <label class="control-label" for="spd-lux-range">观察环境照度 (Lux)</label>
+                  <span class="mono slider-val" id="spd-lux-val">1000 lux · 标准灯箱</span>
+                </div>
+                <input type="range" id="spd-lux-range" min="80" max="3000" step="20" value="1000" />
+              </div>
+
+              <div class="control-group">
+                <label class="control-label">测试织物基色（参考 D65 真实色）</label>
+                <div class="spd-sample-row" id="spd-sample-row"></div>
+              </div>
+
+              <div class="spd-compare-cards">
+                <div class="spd-swatch-card">
+                  <div class="spd-swatch-box" id="spd-ref-swatch"></div>
+                  <div class="spd-swatch-info">
+                    <span>参考光照 (D65)</span>
+                    <strong class="mono" id="spd-ref-hex">#7E5A7B</strong>
+                  </div>
+                </div>
+                <div class="spd-arrow" aria-hidden="true">→</div>
+                <div class="spd-swatch-card">
+                  <div class="spd-swatch-box" id="spd-sim-swatch"></div>
+                  <div class="spd-swatch-info">
+                    <span id="spd-sim-label">感知色貌 (D65)</span>
+                    <strong class="mono" id="spd-sim-hex">#7E5A7B</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="lab-visual">
+              <div class="lab-canvas-card">
+                <div class="lab-canvas-header">
+                  <div>
+                    <strong id="spd-chart-title">CIE D65 相对光谱功率分布 (380–780 nm)</strong>
+                    <span class="muted-text" id="spd-chart-desc">白点 XYZ 由 SPD × CIE 1931 2° 标准观察者函数积分求得</span>
+                  </div>
+                  <span class="badge-outline mono" id="spd-whitepoint">XYZ: 95.05, 100.00, 108.88</span>
+                </div>
+
+                <div class="spd-svg-wrap">
+                  <svg id="spd-svg" viewBox="0 0 600 280" role="img" aria-label="CIE 标准光源相对光谱功率分布曲线"></svg>
+                </div>
+
+                <div class="color-telemetry">
+                  <div class="telemetry-cell">
+                    <span>相关色温 CCT</span>
+                    <strong class="mono" id="spd-cct">6504 K</strong>
+                  </div>
+                  <div class="telemetry-cell">
+                    <span>适应亮度 LA</span>
+                    <strong class="mono" id="spd-la">63.7 cd/m²</strong>
+                  </div>
+                  <div class="telemetry-cell">
+                    <span>感知偏移 ΔE00</span>
+                    <strong class="mono" id="spd-shift-de">0.00</strong>
+                  </div>
+                  <div class="telemetry-cell">
+                    <span>模型支持</span>
+                    <strong class="mono">正向模拟 / 反向推导</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: CIEDE2000 ΔE00 色差检定 -->
+        <div class="lab-panel" id="lab-panel-de2000" role="tabpanel" hidden>
+          <div class="de-layout">
+            <div class="de-inputs">
+              <div class="de-color-card">
+                <span class="de-role">标准参考样 (Reference)</span>
+                <div class="de-preview-block" id="de-preview-a"></div>
+                <div class="color-input-row">
+                  <input type="color" id="de-picker-a" value="#2D4F7C" aria-label="标准参考样颜色" />
+                  <input type="text" id="de-hex-a" class="mono" value="#2D4F7C" maxlength="7" spellcheck="false" aria-label="标准参考样 HEX" />
+                </div>
+                <div class="de-lab-line mono" id="de-lab-a">L* 33.42 · a* 0.84 · b* -28.61</div>
+              </div>
+
+              <div class="de-color-card">
+                <span class="de-role">待测织物样 (Sample)</span>
+                <div class="de-preview-block" id="de-preview-b"></div>
+                <div class="color-input-row">
+                  <input type="color" id="de-picker-b" value="#355885" aria-label="待测织物样颜色" />
+                  <input type="text" id="de-hex-b" class="mono" value="#355885" maxlength="7" spellcheck="false" aria-label="待测织物样 HEX" />
+                </div>
+                <div class="de-lab-line mono" id="de-lab-b">L* 36.91 · a* -0.32 · b* -27.45</div>
+              </div>
+            </div>
+
+            <div class="de-result-card">
+              <div class="de-split-bar" aria-label="双色无缝对照条">
+                <div class="de-split-half" id="de-split-a"></div>
+                <div class="de-split-half" id="de-split-b"></div>
+              </div>
+
+              <div class="de-score-row">
+                <div>
+                  <span class="de-score-label">ISO/CIE 11664-6 感知色差</span>
+                  <div class="de-score-value mono" id="de-value">ΔE00 = 2.41</div>
+                </div>
+                <div class="de-verdict" id="de-verdict">工业细微差异</div>
+              </div>
+
+              <div class="de-scale-bar" aria-hidden="true">
+                <div class="de-scale-marker" id="de-scale-marker"></div>
+              </div>
+              <div class="de-scale-labels mono">
+                <span>0.0 极近</span>
+                <span>1.0 临界</span>
+                <span>2.0 纺织允差</span>
+                <span>5.0 明显色差</span>
+                <span>10+</span>
+              </div>
+
+              <div class="de-components">
+                <div class="de-comp-item"><span>明度差 ΔL*</span><strong class="mono" id="de-dl">+3.49</strong></div>
+                <div class="de-comp-item"><span>彩度差 ΔC*</span><strong class="mono" id="de-dc">-1.15</strong></div>
+                <div class="de-comp-item"><span>色相差 ΔH*</span><strong class="mono" id="de-dh">1.22</strong></div>
+              </div>
+
+              <div class="de-quick-pairs">
+                <span class="muted-text">快捷对比场景：</span>
+                <button type="button" class="mini-pill" data-de-pair="#2D4F7C,#315482">同缸微差</button>
+                <button type="button" class="mini-pill" data-de-pair="#8F3D38,#A84B43">茜红批次对比</button>
+                <button type="button" class="mini-pill" data-de-pair="#4B6B5A,#6E8275">青碧退色核查</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 八大功能模块全景 -->
+    <section class="section modules-section" id="modules">
+      <div class="container">
+        <div class="section-header section-header-row">
+          <div>
+            <span class="section-kicker">EIGHT INTEGRATED WORKBENCH MODULES</span>
+            <h2>八大主视图与跨模块联动体系</h2>
+            <p class="section-desc">
+              对应桌面端左侧 01–08 导航结构，色彩、面料与样本状态通过统一事件总线在模块间无缝流转。
+            </p>
+          </div>
+          <div class="module-filters" role="group" aria-label="筛选模块类别">
+            <button type="button" class="filter-btn is-active" data-filter="all">全部 (8)</button>
+            <button type="button" class="filter-btn" data-filter="ingest">采集与样本</button>
+            <button type="button" class="filter-btn" data-filter="science">色彩科学</button>
+            <button type="button" class="filter-btn" data-filter="preview">面料与换色</button>
+          </div>
+        </div>
+
+        <div class="modules-grid" id="modules-grid">
+          <article class="module-card" data-category="ingest">
+            <div class="module-top">
+              <span class="module-idx mono">01</span>
+              <span class="module-cat">总览入口</span>
+            </div>
+            <h3>项目总览 Overview</h3>
+            <p>集中呈现系统工作路线、核心能力状态、最近输出目录直达入口与关键指标概览，快速进入实验工作流。</p>
+            <ul class="module-tags">
+              <li>桌面工作台导航</li>
+              <li>输出目录直达</li>
+              <li>流程状态一览</li>
+            </ul>
+          </article>
+
+          <article class="module-card module-card-featured" data-category="ingest">
+            <div class="module-top">
+              <span class="module-idx mono">02</span>
+              <span class="module-cat">核心入库</span>
+            </div>
+            <h3>样本管理 · 相机采集 · 3D 外观</h3>
+            <p>图库网格与详情工作台两级结构；支持 Nikon D7500 联机实时取景拍摄、纯色/花纹双算法提取，以及基于 Three.js 的单图 Base Color / Normal / Roughness 3D 球体纹理核查。</p>
+            <ul class="module-tags">
+              <li>Nikon D7500 联机</li>
+              <li>mean_shift / pattern_texture</li>
+              <li>3D 纹理外观球体</li>
+            </ul>
+          </article>
+
+          <article class="module-card" data-category="science">
+            <div class="module-top">
+              <span class="module-idx mono">03</span>
+              <span class="module-cat">光学感知</span>
+            </div>
+            <h3>CIECAM02 色貌实验</h3>
+            <p>单窗切换正向模拟与反向推导；集成 CIE 15:2004 六大标准照明体真实 SPD 曲线与整图 Canvas 感知模拟，精确调控 CCT、Lux、Yb、F、LA、c、Nc。</p>
+            <ul class="module-tags">
+              <li>正向 / 反向双模式</li>
+              <li>颜色 / 整图双输入</li>
+              <li>真实 SPD 积分白点</li>
+            </ul>
+          </article>
+
+          <article class="module-card module-card-featured" data-category="science">
+            <div class="module-top">
+              <span class="module-idx mono">04</span>
+              <span class="module-cat">色彩引擎</span>
+            </div>
+            <h3>CIEDE2000 色彩数据库 &amp; 工具箱</h3>
+            <p>真实样本映射至感知色彩锚点，支持 HEX 检索、ΔE00 测距与全屏对比；内嵌 PANTONE、NCS、COLORO、中国传统色四大标准色库及六色配色草稿工具箱（含 20 步撤销重做）。</p>
+            <ul class="module-tags">
+              <li>四大标准色库</li>
+              <li>七种色轮配色</li>
+              <li>20 步撤销 / 重做</li>
+            </ul>
+          </article>
+
+          <article class="module-card module-card-featured" data-category="preview">
+            <div class="module-top">
+              <span class="module-idx mono">05</span>
+              <span class="module-cat">纹理重染</span>
+            </div>
+            <h3>面料数据库 &amp; 批量预览任务</h3>
+            <p>收录平纹、缎纹正反面、斜纹正反面五类实验织物纹理；通过 CatBoost 回归模型预测换色后纹理标准差，支持面料组 / 配色组最多 200 项批量任务与 8 图同屏比对。</p>
+            <ul class="module-tags">
+              <li>CatBoost 纹理模型</li>
+              <li>面料组 / 配色组批量</li>
+              <li>8 图全屏对照</li>
+            </ul>
+          </article>
+
+          <article class="module-card" data-category="preview">
+            <div class="module-top">
+              <span class="module-idx mono">06</span>
+              <span class="module-cat">款式资产</span>
+            </div>
+            <h3>服装款式库 Style Library</h3>
+            <p>内置 227 款按 11 类服装整理的完整比例白模，支持编号检索、分类维护、一次批量导入 1–500 张款式图以及外部目录覆盖加载。</p>
+            <ul class="module-tags">
+              <li>227 款内置白模</li>
+              <li>11 类服装分类</li>
+              <li>500 张批量导入</li>
+            </ul>
+          </article>
+
+          <article class="module-card" data-category="preview">
+            <div class="module-top">
+              <span class="module-idx mono">07</span>
+              <span class="module-cat">局部重染</span>
+            </div>
+            <h3>分割与换色工作台</h3>
+            <p>自动承接样本原图与 <code>mask_*.png</code> 掩码，提供标准换色、分步迭代换色与有序多色换色三种模式，完整保留织物明暗层次与结构肌理。</p>
+            <ul class="module-tags">
+              <li>标准 / 分布 / 多色三模式</li>
+              <li>Mask 自动联动</li>
+              <li>输出 Manifest 留痕</li>
+            </ul>
+          </article>
+
+          <article class="module-card" data-category="ingest">
+            <div class="module-top">
+              <span class="module-idx mono">08</span>
+              <span class="module-cat">资产审计</span>
+            </div>
+            <h3>结果管理 &amp; 数据保护</h3>
+            <p>统一检索颜色提取、局部换色与面料批量预览任务记录；支持 SQLite 一致性备份与重启恢复、跨机路径重映射及云同步资产包导出。</p>
+            <ul class="module-tags">
+              <li>SQLite 自动迁移</li>
+              <li>路径可移植重映射</li>
+              <li>一致性备份恢复</li>
+            </ul>
+          </article>
+        </div>
+
+        <!-- 附加亮点横幅：全局吸色板 -->
+        <div class="callout-strip">
+          <div class="callout-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M19.5 4.5a2.121 2.121 0 0 1 0 3L16 11l-3-3 3.5-3.5a2.121 2.121 0 0 1 3 0Z" />
+              <path d="m13 8 3 3-7.5 7.5L4 20l1.5-4.5L13 8Z" />
+              <path d="M11 6 18 13" />
+            </svg>
+          </div>
+          <div class="callout-content">
+            <strong>全局磨砂玻璃吸色板工具栏 + 跨模块色彩总线</strong>
+            <p>
+              桌面端底部常驻半透明吸色条，调用原生 <code>EyeDropper API</code> 随时从屏幕任意位置拾色（6 色临时色板），一键弹出 4 维 SVG 色彩分析图表（色相环 / 色调散点 / 色相比例 / 色调矩阵），或直接生成正式调色盘发送至色貌实验、面料数据库与换色工作台。
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 深色光学暗室区块：技术架构与工程品质 -->
+    <section class="section arch-section" id="architecture">
+      <div class="container">
+        <div class="section-header section-header-dark">
+          <span class="section-kicker">ARCHITECTURE &amp; ENGINEERING QUALITY</span>
+          <h2>三层解耦架构，兼顾原生性能与离线交付</h2>
+          <p class="section-desc">
+            以桌面科研工具的长期可靠性为基准设计：前端模块化零构建依赖、Rust 严守安全边界、Python 图像处理管线独立打包进 Windows 安装包。
+          </p>
+        </div>
+
+        <div class="arch-diagram">
+          <div class="arch-layer">
+            <div class="layer-badge mono">LAYER 01 · FRONTEND WEBVIEW</div>
+            <div class="arch-copy">
+              <h3>Vanilla JS ES Module + 光学可视化</h3>
+              <p>按 <code>app / core / features / shared</code> 严格分层，本地化集成 Plotly.js 与 Three.js，完全脱离外部 CDN；全部采用安全 DOM API，生产代码 0 处 <code>innerHTML</code> 赋值。</p>
+            </div>
+            <div class="tech-pills">
+              <span>ES Modules</span>
+              <span>CSS Design Tokens</span>
+              <span>Plotly.js 2.27</span>
+              <span>Three.js 0.171</span>
+              <span>CIE Color Math</span>
+            </div>
+          </div>
+
+          <div class="arch-connector" aria-hidden="true">
+            <span>Tauri 2 IPC Commands · Event Bus · Artifact Path Policy</span>
+          </div>
+
+          <div class="arch-layer">
+            <div class="layer-badge mono">LAYER 02 · RUST CORE &amp; STORAGE</div>
+            <div class="arch-copy">
+              <h3>Tauri 2 宿主 + r2d2 SQLite + Worker 调度</h3>
+              <p>负责文件白名单与路径遍历防护、SQL 标识符校验、SQLite 连接池与 Schema 迁移、隐藏窗口 Worker 生命周期管理、超时与取消控制，以及敏感错误脱敏云同步。</p>
+            </div>
+            <div class="tech-pills">
+              <span>Tauri 2</span>
+              <span>Rust</span>
+              <span>SQLite + r2d2</span>
+              <span>tracing 日志</span>
+              <span>reqwest 云同步</span>
+            </div>
+          </div>
+
+          <div class="arch-connector" aria-hidden="true">
+            <span>Structured Worker Protocol (__PROGRESS__ / __RESULT__ / __ERROR__)</span>
+          </div>
+
+          <div class="arch-layer">
+            <div class="layer-badge mono">LAYER 03 · PYTHON IMAGE WORKER</div>
+            <div class="arch-copy">
+              <h3>离线图像处理、机器学习与色彩算法管线</h3>
+              <p>内置于 Windows NSIS / MSI 安装包的 PyInstaller 独立 Worker，开箱即用无需用户配置 Python；支持图像 Magic Bytes 校验、色彩分割、CatBoost 纹理建模与 Excel 归档导出。</p>
+            </div>
+            <div class="tech-pills">
+              <span>Python 3.11+</span>
+              <span>OpenCV</span>
+              <span>NumPy &amp; SciPy</span>
+              <span>CatBoost</span>
+              <span>pandas / openpyxl</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="quality-grid">
+          <div class="quality-item">
+            <div class="quality-num mono">0 处</div>
+            <h4>硬编码色值与不安全注入</h4>
+            <p>完整 CSS 设计令牌体系，彻底消除 <code>innerHTML</code> 赋值，生产路径 Rust 代码杜绝 <code>unwrap()</code>。</p>
+          </div>
+          <div class="quality-item">
+            <div class="quality-num mono">100% 离线</div>
+            <h4>预置资源与开箱即用安装</h4>
+            <p>提供 NSIS / MSI 安装包，内嵌 Python Worker、种子数据库、五类织物模型与 227 款白模，支持自动路径重映射。</p>
+          </div>
+          <div class="quality-item">
+            <div class="quality-num mono">全链路测试</div>
+            <h4>JS / Rust / Python 三端验证</h4>
+            <p>覆盖色彩数学、CIE 照明体、Worker 契约、SQLite 安全边界、面料批量与端到端提取测试。</p>
+          </div>
+          <div class="quality-item">
+            <div class="quality-num mono">ICC → sRGB</div>
+            <h4>标准色彩管理与数据保护</h4>
+            <p>图像取色与提取共用 ICC 归一化管线，配合 SQLite 一致性备份与崩溃恢复，保护每一次实验数据。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 底部获取与学术声明 CTA -->
+    <section class="section cta-section">
+      <div class="container">
+        <div class="cta-card">
+          <div>
+            <span class="section-kicker">OPEN RESEARCH REPOSITORY</span>
+            <h2>探索源码、文档与 Windows 桌面端构建</h2>
+            <p>
+              查看完整架构说明、算法评估报告、Python CLI 命令行手册与桌面端开发指南。本项目仅供学术研究与教学用途。
+            </p>
+          </div>
+          <div class="cta-actions">
+            <a
+              class="btn btn-primary btn-lg"
+              href="https://github.com/gzx5418/fabric-color-database"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              访问原项目仓库
+            </a>
+            <a class="btn btn-secondary btn-lg" href="#lab">返回交互实验室</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <img src="./assets/brand-mark.png" alt="" width="24" height="24" />
+        <span>电子面料色彩数据库 · Fabric Color Database</span>
+      </div>
+      <div class="footer-meta mono">
+        <span>fabriccolor.is-an.ai</span>
+        <span aria-hidden="true">·</span>
+        <span>v0.1.6</span>
+        <span aria-hidden="true">·</span>
+        <span>仅供学术研究与教学用途</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- 轻量 Toast 提示 -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="./app.js" defer></script>
 </body>
 </html>
